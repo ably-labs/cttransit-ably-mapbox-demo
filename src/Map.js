@@ -20,20 +20,75 @@ export default class Map extends React.Component {
                 zoom: 12
             },
             vehicles: {}
-        };
-        this.listenForVehicles();
+        };        
     }
-    
-    listenForVehicles() {
-   
+
+    componentDidMount() {
         const channel = client.channels.get('[product:cttransit/gtfsr]vehicle:all');
         channel.attach((err, r) => {
-            channel.subscribe((message) => {
-                const vehicleDictionary = this.state.vehicles;
-                vehicleDictionary[message.data.id] = message.data;
-                this.setState({ vehicles: vehicleDictionary });
-            });            
-        });  
+            channel.subscribe((message) => this.travelDataArrived(message));            
+        });      
+    }
+
+    componentDidUpdate() {
+    }
+
+    travelDataArrived(message) {
+        const vehicleDictionary = this.state.vehicles;
+        
+        if (vehicleDictionary[message.data.id]) {
+           // console.log("oooh I'm an update")
+        } else {            
+            vehicleDictionary[message.data.id] = message.data;
+            this.setState({ vehicles: vehicleDictionary });
+            return;
+        }
+
+        const STEPS = 3_000;
+               
+        // vehicleDictionary[message.data.id] = message.data;
+        const current = vehicleDictionary[message.data.id];
+        const updated = message.data;
+
+        const totalShiftLat = current.vehicle.position.latitude - updated.vehicle.position.latitude;
+        const totalShiftLong = current.vehicle.position.longitude - updated.vehicle.position.longitude; // x axis
+
+        const shiftLatPerTick = totalShiftLat / STEPS;
+        const shiftLongPerTick = totalShiftLong / STEPS;
+
+        // console.log(shiftLatPerTick, shiftLongPerTick);
+        
+        let startTime = 0;
+            
+        
+        function animate(timestamp, component) {
+
+          const runtime = timestamp - startTime;
+          const timeStep = Math.round(runtime);
+         
+
+          vehicleDictionary[message.data.id].vehicle.position.latitude += shiftLatPerTick;
+          vehicleDictionary[message.data.id].vehicle.position.longitude += shiftLongPerTick;    
+
+
+          
+          if (timeStep <= STEPS) {
+            window.requestAnimationFrame(ts => animate(ts, component));
+          } else {
+            // console.log("I reached three seconds");
+            component.setState({ vehicles: vehicleDictionary });
+          }
+        }
+
+        window.cancelAnimationFrame(0);
+
+        window.requestAnimationFrame(timeStamp => {
+          startTime = timeStamp;
+          animate(timeStamp, this);
+        });
+
+
+        //this.setState({ vehicles: vehicleDictionary });
     }
 
     render() {
@@ -51,7 +106,7 @@ export default class Map extends React.Component {
                     <h1>Live Bus Journey Data from CT Transit</h1>
                     <ul className="buses">
                         {items.map(v => (
-                           <li className="bus">
+                           <li className="bus" key={"key" + v.id}>
                            <h2>Bus {v.id}</h2>
                            <h3>lat: <span className="latlon">{v.vehicle.position.latitude}</span>,  lon: <span className="latlon">{v.vehicle.position.longitude}</span></h3>
                        </li>   
@@ -66,7 +121,7 @@ export default class Map extends React.Component {
                 >
                     {items.map(v => (
                         <Marker key={v.id} latitude={v.vehicle.position.latitude} longitude={v.vehicle.position.longitude}>
-                            <div>🚌</div>
+                            <span role="img" aria-label="bus icon">🚌</span>
                         </Marker>
                     ))}
                 </ReactMapGL>

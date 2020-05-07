@@ -16,6 +16,8 @@ main {
 
 .data {
   width: 470px;
+  box-shadow: 5px 0px 10px 0px rgba(0,0,0,0.3);
+  z-index: 1;
 }
 
 .image {
