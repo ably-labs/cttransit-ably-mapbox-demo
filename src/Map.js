@@ -7,6 +7,29 @@ client.connection.on(function(stateChange) {
     console.log('New connection state is ' + stateChange.current)
 })
 
+const animateBuses = false;
+
+const starterFakeMessage = { 
+    "name":"data",
+    "id":"IarXNoZzs8:0:0",
+    "data": {
+        "id":"1430",
+        "vehicle": {
+            "position": { "latitude": 41.767179, "longitude": -72.658395, "bearing":90, "speed":0.0000034520621738920454 },
+            "timestamp":"1588850403",
+            "vehicle": { "id":"2430", "label": "1430" }
+        }
+    }
+};
+
+function simulateAblyMessages() {
+    setInterval(() => { 
+        starterFakeMessage.data.vehicle.position.longitude += 0.005000;
+        const clone = JSON.parse(JSON.stringify(starterFakeMessage));  
+        this.travelDataArrived(clone); 
+    }, 1_000);  
+}
+
 export default class Map extends React.Component {
 
     constructor() {
@@ -24,71 +47,59 @@ export default class Map extends React.Component {
     }
 
     componentDidMount() {
+        // simulateAblyMessages();
+        
         const channel = client.channels.get('[product:cttransit/gtfsr]vehicle:all');
         channel.attach((err, r) => {
             channel.subscribe((message) => this.travelDataArrived(message));            
-        });      
-    }
-
-    componentDidUpdate() {
+        });     
     }
 
     travelDataArrived(message) {
         const vehicleDictionary = this.state.vehicles;
         
-        if (vehicleDictionary[message.data.id]) {
-           // console.log("oooh I'm an update")
-        } else {            
+        if (!vehicleDictionary[message.data.id]) {
             vehicleDictionary[message.data.id] = message.data;
             this.setState({ vehicles: vehicleDictionary });
             return;
         }
 
-        const STEPS = 3_000;
-               
-        // vehicleDictionary[message.data.id] = message.data;
         const current = vehicleDictionary[message.data.id];
         const updated = message.data;
 
-        const totalShiftLat = current.vehicle.position.latitude - updated.vehicle.position.latitude;
-        const totalShiftLong = current.vehicle.position.longitude - updated.vehicle.position.longitude; // x axis
+        if (!animateBuses) {            
+            vehicleDictionary[message.data.id] = updated;
+            this.setState({ vehicles: vehicleDictionary });
+            return;
+        }
+                  
 
-        const shiftLatPerTick = totalShiftLat / STEPS;
-        const shiftLongPerTick = totalShiftLong / STEPS;
+        const targetFramerate = 60;
+        const latShiftDirection  = current.vehicle.position.latitude > updated.vehicle.position.latitude ? -1 : 1;
+        const longShiftDirection  = current.vehicle.position.longitude > updated.vehicle.position.longitude ? -1 : 1;
+        const shiftLatPerTick = Math.abs(current.vehicle.position.latitude - updated.vehicle.position.latitude) / targetFramerate;
+        const shiftLongPerTick = Math.abs(current.vehicle.position.longitude - updated.vehicle.position.longitude) / targetFramerate;
 
-        // console.log(shiftLatPerTick, shiftLongPerTick);
+        let framesDelivered = 0;
+
+        function animate(timestamp, component, c) {
+            framesDelivered++;    
+            c.vehicle.position.latitude += (shiftLatPerTick * latShiftDirection);
+            c.vehicle.position.longitude += (shiftLongPerTick * longShiftDirection);   
         
-        let startTime = 0;
-            
-        
-        function animate(timestamp, component) {
-
-          const runtime = timestamp - startTime;
-          const timeStep = Math.round(runtime);
-         
-
-          vehicleDictionary[message.data.id].vehicle.position.latitude += shiftLatPerTick;
-          vehicleDictionary[message.data.id].vehicle.position.longitude += shiftLongPerTick;    
-
-
-          
-          if (timeStep <= STEPS) {
-            window.requestAnimationFrame(ts => animate(ts, component));
-          } else {
-            // console.log("I reached three seconds");
-            component.setState({ vehicles: vehicleDictionary });
-          }
+            if (framesDelivered < targetFramerate) {
+                component.setState({ vehicles:  vehicleDictionary });
+                window.requestAnimationFrame(ts => animate(ts, component, c));
+            } else {         
+                vehicleDictionary[message.data.id] = updated;
+                component.setState({ vehicles:  vehicleDictionary });         
+            }
         }
 
         window.cancelAnimationFrame(0);
-
         window.requestAnimationFrame(timeStamp => {
-          startTime = timeStamp;
-          animate(timeStamp, this);
+            animate(timeStamp, this, current);
         });
-
-
-        //this.setState({ vehicles: vehicleDictionary });
     }
 
     render() {
