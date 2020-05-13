@@ -28,6 +28,7 @@ export default class Map extends React.Component {
             },
             vehicles: {},
             isHovering: false,
+            isSelected: "",
             busAddress: ""
         };        
     }
@@ -129,6 +130,16 @@ export default class Map extends React.Component {
         return items;
     }
 
+    selectBus(e, v) {
+        e.preventDefault();
+        this.setState({ isSelected: v.id });
+        console.log(v.vehicle.position.latitude, v.vehicle.position.latitude);
+        this.map.flyTo({ 
+            center: [v.vehicle.position.longitude, v.vehicle.position.latitude],
+            zoom: 17, 
+        });
+    }
+
     render() {
 
         const items = this.getBusesToRender();
@@ -138,12 +149,12 @@ export default class Map extends React.Component {
                 <section className="data">
                     <img className="image" src="https://cdn.glitch.com/859b92c7-9c2f-4724-aaec-1c00c6291962%2Fbus.jpg?v=1588763935046" alt="CT Fastrak bus"/>
                     <h1>Live Bus Journey Data from CT Transit</h1>
+                    <h2>Select a bus to highlight it on the map</h2>
                     <ul className="buses">
                         {items.map((v, i) => (
                             <li className="bus" key={"key" + v.id} className={"bus" + i}>
-                            <h2>Bus {v.id}</h2>
-                            <h3>{v.address}</h3>
-                       </li>   
+                                <a className="bus-link" onClick={evt => this.selectBus(evt, v)} href="#">Bus {v.id}</a>
+                            </li>   
                         ))}
                     </ul>
                 </section>
@@ -156,7 +167,7 @@ export default class Map extends React.Component {
                 >
                     {items.map((v, i) => (
                         <Marker key={v.id} latitude={v.vehicle.position.latitude} longitude={v.vehicle.position.longitude}>
-                            <span className={"bus" + i} id={"v" + v.id} role="img" aria-label="bus icon" onMouseOver={ evt => this.decorateWithRealAddress(v.id, evt)} onMouseLeave={evt => this.hideTooltip()}>🚌</span>
+                            <span className={`bus${i} ${this.state.isSelected === v.id ? "selected" : ""}`} id={"v" + v.id} role="img" aria-label="bus icon" onMouseOver={ evt => this.decorateWithRealAddress(v.id, evt)} onMouseLeave={evt => this.hideTooltip()}>🚌</span>
                         </Marker>
                     ))}
                     { 
