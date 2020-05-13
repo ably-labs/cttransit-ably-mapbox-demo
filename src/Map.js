@@ -1,14 +1,10 @@
 import React from 'react';
 import ReactMapGL, { Marker } from "react-map-gl";
 import Ably from "ably/promises";
-import simulateAblyMessages from "./FakeAbly";
+// import simulateAblyMessages from "./FakeAbly";
 import reverseGeocode from "./Geocode";
 
 const client = new Ably.Realtime(process.env.REACT_APP_ABLY_API_KEY);
-client.connection.on(function(stateChange) {
-    console.log('New connection state is ' + stateChange.current)
-})
-
 const animateBuses = false;
 
 export default class Map extends React.Component {
@@ -70,7 +66,6 @@ export default class Map extends React.Component {
             return;
         }
 
-        const current = vehicleDictionary[message.data.id];
         const updated = message.data;
 
         if (!animateBuses) {            
@@ -78,33 +73,7 @@ export default class Map extends React.Component {
             this.setState({ vehicles: vehicleDictionary });
             return;
         }
-                  
-        const targetFramerate = 60;
-        const latShiftDirection  = current.vehicle.position.latitude > updated.vehicle.position.latitude ? -1 : 1;
-        const longShiftDirection  = current.vehicle.position.longitude > updated.vehicle.position.longitude ? -1 : 1;
-        const shiftLatPerTick = Math.abs(current.vehicle.position.latitude - updated.vehicle.position.latitude) / targetFramerate;
-        const shiftLongPerTick = Math.abs(current.vehicle.position.longitude - updated.vehicle.position.longitude) / targetFramerate;
-
-        let framesDelivered = 0;
-
-        function animate(timestamp, component, c) {
-            framesDelivered++;    
-            c.vehicle.position.latitude += (shiftLatPerTick * latShiftDirection);
-            c.vehicle.position.longitude += (shiftLongPerTick * longShiftDirection);   
         
-            if (framesDelivered < targetFramerate) {
-                component.setState({ vehicles:  vehicleDictionary });
-                window.requestAnimationFrame(ts => animate(ts, component, c));
-            } else {         
-                vehicleDictionary[message.data.id] = updated;
-                component.setState({ vehicles:  vehicleDictionary });         
-            }
-        }
-
-        window.cancelAnimationFrame(0);
-        window.requestAnimationFrame(timeStamp => {
-            animate(timeStamp, this, current);
-        });
     }
 
     getBusesToRender() {
@@ -133,11 +102,9 @@ export default class Map extends React.Component {
     selectBus(e, v) {
         e.preventDefault();
         this.setState({ isSelected: v.id });
-        console.log(v.vehicle.position.latitude, v.vehicle.position.latitude);
-        this.map.flyTo({ 
-            center: [v.vehicle.position.longitude, v.vehicle.position.latitude],
-            zoom: 17, 
-        });
+        console.log(v.vehicle.position.longitude, v.vehicle.position.latitude);
+        this.map.setZoom(16);
+        this.map.setCenter([v.vehicle.position.longitude, v.vehicle.position.latitude]);
     }
 
     render() {
@@ -152,8 +119,8 @@ export default class Map extends React.Component {
                     <h2>Select a bus to highlight it on the map</h2>
                     <ul className="buses">
                         {items.map((v, i) => (
-                            <li className="bus" key={"key" + v.id} className={"bus" + i}>
-                                <a className="bus-link" onClick={evt => this.selectBus(evt, v)} href="#">Bus {v.id}</a>
+                            <li key={"key" + v.id} className={"bus" + i +  " bus"}>
+                                <a className={`bus-link ${this.state.isSelected === v.id ? "clicked" : ""} ${this.state.isHovering ? "hover" : ""}`} onClick={evt => this.selectBus(evt, v)} href="/">Bus {v.id}</a>
                             </li>   
                         ))}
                     </ul>
@@ -171,7 +138,7 @@ export default class Map extends React.Component {
                         </Marker>
                     ))}
                     { 
-                        this.state.isHovering &&
+                        this.state.isHovering && this.state.busAddress &&
                         <div className="tooltip" style={this.tooltipStyle}>
                             <span>{this.state.busAddress}</span>
                         </div>

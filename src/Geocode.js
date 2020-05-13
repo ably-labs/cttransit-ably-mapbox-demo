@@ -1,4 +1,4 @@
-import { Loader, LoaderOptions } from 'google-maps';
+import { Loader } from 'google-maps';
 
 var googleReady = false;
 let geocoder;
@@ -33,7 +33,6 @@ export default async function reverseGeocode(long, lat, callback) {
     const { results, status } = await lookupGeocodePromise(latlng);
     
     if (status === "OK") {
-        console.log(results[0].formatted_address);
         return { success: true, error: null, address: results[0].formatted_address, location: latlng };
     }
 
