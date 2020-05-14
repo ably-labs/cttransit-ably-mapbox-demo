@@ -18,7 +18,7 @@ export default class Map extends React.Component {
             viewport: {
                 latitude: 41.767179,
                 longitude: -72.658395,
-                width: "calc(100vw - 470px)",
+                width: "100%",
                 height: "100vh",
                 zoom: 12
             },
@@ -46,7 +46,7 @@ export default class Map extends React.Component {
         v.address = result.address;        
         this.setState({
             vehicles: this.state.vehicles,
-            isHovering: true,
+            isHovering: v.id,
             busAddress: result.address
         });
     }
@@ -102,7 +102,6 @@ export default class Map extends React.Component {
     selectBus(e, v) {
         e.preventDefault();
         this.setState({ isSelected: v.id });
-        console.log(v.vehicle.position.longitude, v.vehicle.position.latitude);
         this.map.setZoom(16);
         this.map.setCenter([v.vehicle.position.longitude, v.vehicle.position.latitude]);
     }
@@ -116,11 +115,17 @@ export default class Map extends React.Component {
                 <section className="data">
                     <img className="image" src="https://cdn.glitch.com/859b92c7-9c2f-4724-aaec-1c00c6291962%2Fbus.jpg?v=1588763935046" alt="CT Fastrak bus"/>
                     <h1>Live Bus Journey Data from CT Transit</h1>
-                    <h2>Select a bus to highlight it on the map</h2>
+                    { 
+                        items.length ? <h2>Select a bus to highlight it on the map</h2> : <img src="https://cdn.glitch.com/859b92c7-9c2f-4724-aaec-1c00c6291962%2Floading.gif?v=1589459270889" className="loading" alt="loading" />
+                    }
+                   
                     <ul className="buses">
                         {items.map((v, i) => (
                             <li key={"key" + v.id} className={"bus" + i +  " bus"}>
-                                <a className={`bus-link ${this.state.isSelected === v.id ? "clicked" : ""} ${this.state.isHovering ? "hover" : ""}`} onClick={evt => this.selectBus(evt, v)} href="/">Bus {v.id}</a>
+                                <a href="/"
+                                   className={`bus-link ${this.state.isSelected === v.id ? "clicked" : ""} ${this.state.isHovering === v.id ? "hover" : ""}`} 
+                                   onClick={evt => this.selectBus(evt, v)}
+                                >Bus {v.id}</a>
                             </li>   
                         ))}
                     </ul>
@@ -134,7 +139,13 @@ export default class Map extends React.Component {
                 >
                     {items.map((v, i) => (
                         <Marker key={v.id} latitude={v.vehicle.position.latitude} longitude={v.vehicle.position.longitude}>
-                            <span className={`bus${i} ${this.state.isSelected === v.id ? "selected" : ""}`} id={"v" + v.id} role="img" aria-label="bus icon" onMouseOver={ evt => this.decorateWithRealAddress(v.id, evt)} onMouseLeave={evt => this.hideTooltip()}>🚌</span>
+                            <span className={`bus${i} ${this.state.isSelected === v.id ? "selected" : ""}`} 
+                                  id={"v" + v.id} role="img" 
+                                  aria-label="bus icon" 
+                                  onMouseOver={ evt => this.decorateWithRealAddress(v.id, evt)} 
+                                  onMouseLeave={evt => this.hideTooltip()}
+                                  onClick={evt => this.selectBus(evt, v)}
+                            >🚌</span>
                         </Marker>
                     ))}
                     { 

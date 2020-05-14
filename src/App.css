@@ -76,7 +76,6 @@ h2 {
 }
 
 .tooltip {
-  border: 5px solid red;
   position: absolute;
   margin-top: -50px;
   margin-left: -20px;
@@ -124,4 +123,29 @@ h2 {
 .clicked {
   color: white;
   background-color: #129eaf;
+}
+
+.loading {
+  display: block;
+  width: 300px;
+  object-fit: cover;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  main {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .data {
+      position: absolute;
+      width: 100%;
+      background-color: white;
+      bottom: 0;
+      height: 50vh;
+  }
+  .image {
+    display: none;
+  }
 }
