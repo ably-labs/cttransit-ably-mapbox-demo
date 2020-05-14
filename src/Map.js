@@ -5,14 +5,12 @@ import Ably from "ably/promises";
 import reverseGeocode from "./Geocode";
 
 const client = new Ably.Realtime(process.env.REACT_APP_ABLY_API_KEY);
-const animateBuses = false;
 
 export default class Map extends React.Component {
 
     constructor() {
         super();
      
-        this.bounds = {};
         this.tooltipStyle = {};
         this.state = {
             viewport: {
@@ -30,13 +28,56 @@ export default class Map extends React.Component {
     }
 
     componentDidMount() {
-        // simulateAblyMessages();
+        // simulateAblyMessages((data) => this.travelDataArrived(data));
         this.map = this.mapRef.getMap();
 
         const channel = client.channels.get('[product:cttransit/gtfsr]vehicle:all');
         channel.attach((err, r) => {
             channel.subscribe((message) => this.travelDataArrived(message));            
         });
+    }
+
+    travelDataArrived(message) {
+        const vehicleDictionary = this.state.vehicles;        
+        message.data.address = "";
+
+        vehicleDictionary[message.data.id] = message.data;
+        this.setState({ vehicles: this.state.vehicles });
+    }
+
+    getVisibleBuses() {
+        if (!this.map) { 
+            return []; 
+        }
+
+        return Object.entries(this.state.vehicles)
+                     .filter(([key, bus]) => { return this.isInBounds(this.map.getBounds(), bus.vehicle.position); })
+                     .map(([key, bus]) => { return bus } );
+    }
+
+    isInBounds(bounds, latLong) {
+        return latLong.latitude >= bounds._sw.lat 
+                 && latLong.latitude <= bounds._ne.lat
+                 && latLong.longitude >= bounds._sw.lng 
+                 && latLong.longitude <= bounds._ne.lng;
+    }
+
+    selectBus(e, bus) {
+        e.preventDefault();
+        this.setState({ 
+            viewport: this.viewportZoomedTo(bus, 16), 
+            isSelected: bus.id 
+        });
+    }
+    
+    viewportZoomedTo(bus, zoom) {
+        return {
+            zoom: 16,
+            latitude: bus.vehicle.position.latitude,
+            longitude: bus.vehicle.position.longitude,
+            width: this.state.viewport.width,
+            height: this.state.viewport.height,
+        };
     }
 
     async decorateWithRealAddress(vehicleId, e) {
@@ -55,67 +96,9 @@ export default class Map extends React.Component {
         this.setState({ isHovering: false });
     }
 
-    travelDataArrived(message) {
-        const vehicleDictionary = this.state.vehicles;
-        
-        message.data.address = "";
-        
-        if (!vehicleDictionary[message.data.id]) {
-            vehicleDictionary[message.data.id] = message.data;
-            this.setState({ vehicles: vehicleDictionary });
-            return;
-        }
-
-        const updated = message.data;
-
-        if (!animateBuses) {            
-            vehicleDictionary[message.data.id] = updated;
-            this.setState({ vehicles: vehicleDictionary });
-            return;
-        }
-        
-    }
-
-    getBusesToRender() {
-        if (!this.map) { 
-            return []; 
-        }
-
-        this.bounds = this.map.getBounds();
-        const ids = Object.getOwnPropertyNames(this.state.vehicles);
-
-        const items = [];
-        for (let id of ids) {
-            const vehicle = this.state.vehicles[id];
-
-            if (vehicle.vehicle.position.latitude >= this.bounds._sw.lat 
-                && vehicle.vehicle.position.latitude <= this.bounds._ne.lat
-                && vehicle.vehicle.position.longitude >= this.bounds._sw.lng 
-                && vehicle.vehicle.position.longitude <= this.bounds._ne.lng) {
-                    items.push(this.state.vehicles[id]);
-            }
-        }
-
-        return items;
-    }
-
-    selectBus(e, v) {
-        e.preventDefault();
-        this.setState({ 
-            viewport: {
-                latitude: v.vehicle.position.latitude,
-                longitude: v.vehicle.position.longitude,
-                zoom: 16,
-                width: "100%",
-                height: "100vh",
-            },
-            isSelected: v.id
-        });
-    }
-
     render() {
 
-        const items = this.getBusesToRender();
+        const items = this.getVisibleBuses();
         
         return (
             <main>
@@ -123,42 +106,44 @@ export default class Map extends React.Component {
                     <img className="image" src="https://cdn.glitch.com/859b92c7-9c2f-4724-aaec-1c00c6291962%2Fbus.jpg?v=1588763935046" alt="CT Fastrak bus"/>
                     <h1>Live Bus Journey Data from CT Transit</h1>
                     { 
-                        items.length ? <h2>Select a bus to highlight it on the map</h2> : <img src="https://cdn.glitch.com/859b92c7-9c2f-4724-aaec-1c00c6291962%2Floading.gif?v=1589459270889" className="loading" alt="loading" />
+                        items.length 
+                            ? <h2>Select a bus to highlight it on the map</h2> 
+                            : <img src="https://cdn.glitch.com/859b92c7-9c2f-4724-aaec-1c00c6291962%2Floading.gif?v=1589459270889" className="loading" alt="loading" />
                     }
                    
                     <ul className="buses">
                         {items.map((v, i) => (
-                            <li key={"key" + v.id} className={"bus" + i +  " bus"}>
+                            <li key={ "key" + v.id } className={"bus" + i +  " bus"}>
                                 <a href="/"
                                    className={`bus-link ${this.state.isSelected === v.id ? "clicked" : ""} ${this.state.isHovering === v.id ? "hover" : ""}`} 
-                                   onClick={evt => this.selectBus(evt, v)}
-                                >Bus {v.id}</a>
+                                   onClick={ evt => this.selectBus(evt, v) }
+                                >Bus { v.id }</a>
                             </li>   
                         ))}
                     </ul>
                 </section>
                 <ReactMapGL 
                     ref={ map => this.mapRef = map }
-                    {...this.state.viewport}
-                    mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
+                    { ...this.state.viewport }
+                    mapboxApiAccessToken={ process.env.REACT_APP_MAPBOX_TOKEN }
                     mapStyle="mapbox://styles/thisisjofrank/ck9v60gp307uq1inhceylpzdi"
                     onViewportChange={ v => { this.setState({ viewport: v }) } }           
                 >
                     {items.map((v, i) => (
-                        <Marker key={v.id} latitude={v.vehicle.position.latitude} longitude={v.vehicle.position.longitude}>
-                            <span className={`bus${i} ${this.state.isSelected === v.id ? "selected" : ""}`} 
-                                  id={"v" + v.id} role="img" 
+                        <Marker key={ v.id } latitude={ v.vehicle.position.latitude } longitude={ v.vehicle.position.longitude }>
+                            <span className={ `bus${i} ${this.state.isSelected === v.id ? "selected" : ""}` } 
+                                  role="img" 
                                   aria-label="bus icon" 
-                                  onMouseOver={ evt => this.decorateWithRealAddress(v.id, evt)} 
-                                  onMouseLeave={evt => this.hideTooltip()}
-                                  onClick={evt => this.selectBus(evt, v)}
+                                  onMouseOver={ evt => this.decorateWithRealAddress(v.id, evt) } 
+                                  onMouseLeave={ evt => this.hideTooltip() }
+                                  onClick={ evt => this.selectBus(evt, v) }
                             >🚌</span>
                         </Marker>
                     ))}
                     { 
                         this.state.isHovering && this.state.busAddress &&
-                        <div className="tooltip" style={this.tooltipStyle}>
-                            <span>{this.state.busAddress}</span>
+                        <div className="tooltip" style={ this.tooltipStyle }>
+                            <span>{ this.state.busAddress }</span>
                         </div>
                     }
                 </ReactMapGL>              

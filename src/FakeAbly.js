@@ -11,10 +11,10 @@ const starterFakeMessage = {
     }
 };
 
-export function simulateAblyMessages() {
+export default function simulateAblyMessages(callback) {
     setInterval(() => { 
         starterFakeMessage.data.vehicle.position.longitude += 0.005000;
         const clone = JSON.parse(JSON.stringify(starterFakeMessage));  
-        this.travelDataArrived(clone); 
+        callback(clone); 
     }, 1_000);  
 }
