@@ -101,9 +101,16 @@ export default class Map extends React.Component {
 
     selectBus(e, v) {
         e.preventDefault();
-        this.setState({ isSelected: v.id });
-        this.map.setZoom(16);
-        this.map.setCenter([v.vehicle.position.longitude, v.vehicle.position.latitude]);
+        this.setState({ 
+            viewport: {
+                latitude: v.vehicle.position.latitude,
+                longitude: v.vehicle.position.longitude,
+                zoom: 16,
+                width: "100%",
+                height: "100vh",
+            },
+            isSelected: v.id
+        });
     }
 
     render() {
