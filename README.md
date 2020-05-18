@@ -1,124 +1,125 @@
-# mapfishtank
+# Mapping Transport in Realtime
 
-## Ably make realtime data APIs!
+## A demo using Ably, Mapbox and data from CT Transit
 
-- One of the cool data source is CT transit buses
-- Shows how high quality realtime data can be injested and redistributed using Ably Hub
+This demo covers how to visualise public transport on a map in realtime. It uses the [Ably Realtime Hub](https://www.ably.io/hub), which is a free collection of realtime data sources. For this demo we'll be using the [CT Transit GTFS realtime channel](https://www.ably.io/hub/products/174). This is a realtime data stream which has been injested and redistributed by the Ably Hub to make it easy to use and reliable.
 
-Let's run through a cool mapping example
+This demo uses:
 
-pre-reqs
+- [React](https://reactjs.org/)
+- [The Mapbox API](https://www.mapbox.com/)
+- [Ably API](https://www.ably.io/)
+- [Google Maps Geolookup API](https://developers.google.com/maps/documentation/geolocation/intro)
 
-- React
-- Mapbox API
-- Ably API
-- Google Maps Geolookup API
+## MapBox - A cross platform mapping tool
 
-## MapBox, Ubers answer to maps
+Mapbox allows us to build a fully customisable, interactive map. Their APIs and SDKs are free and well maintained. 
 
-- Free!
-- well maintained!
-- Reasonably fully featured
+### MapBox and React
 
-## MapBox Loves React
+This demo uses the [react-map-gl](https://www.npmjs.com/package/react-map-gl) package (not to be confused with other similarly named packages that also wrap mapbox). This package provides react components for Mapbox to do half of our work for us. The demo was started with [Create React App](https://github.com/facebook/create-react-app) which allows us to get quickly set up with a mordern web app with no build configuration.
 
-react-map-gl - not to be confused with other similarly named packages that also wrap mapbox
-Provides react components for mapbox to do half our work for us
-This is why the react ecosystem being so popular is useful
+In order to use the react-map-gl package you will need an access token from Mapbox, which you can create with a [free Mapbox account](https://account.mapbox.com/auth/signup/). Set your new access token to the **REACT_APP_MAPBOX_ACCESS_TOKEN** environment variable in the `.env.local` file.
 
-## Build a web app 
+## Building a web app
 
-"what we wanted it to do"
-- Show a map
-- Put buses on map
-- Have buses move in (Ably) real time
-- allow people to click to highlight in some way, the bus they wanted to see
+The aim of this demo was to show an interactive map with live markers showing buses which update their position in realtime. Users will be able to select a bus to find out more data about it.
 
-## Laying out the app
+Create react app provides us with the following directory structure:
+```
+├── README.md
+├── node_modules/
+├── package.json
+├── public
+│   ├── favicon.ico
+│   ├── index.html
+│   └── manifest.json
+└── src
+    ├── App.css
+    ├── App.js
+    ├── App.test.js
+    ├── index.css
+    ├── index.js
+    └── serviceWorker.js
+```
 
-- Example directory structure
-- App is just the entrypoint
-- Map is our component
+public/index.html is the page template;
+src/index.js is the JavaScript entry point.
+src/App.js is our main react component and we will add Map.js and Geocode.js components.
 
-Use CRA, this is what we got.
+## Map.js explained
 
-## A look at our Map.js
+This is the component which adds a map to the page and managed the placement of bus markers.
 
-- Creating state on startup, with empty dictionary of active buses
-- setting the map viewport
-- Using react-map-gl to draw a map
+In it we:
 
-When the component does mount
+- Create state on startup, with an empty dictionary of active buses
+- Set up the map viewport
+- Draw a map with react-map-gl
 
-- Sub to ably
-- Add a callback that puts any arriving vehicles in our dictionary
-- Any subsequent message from the hub for same vehicle overwrites the entry, updating the position
+When the component mounts we:
 
-- Updates will trigger React to rerender because our vehicle dictionary is in the state object
-- Woo! Moving buses
+- Subscribe to the Ably CT Transit channel
+- Add a callback to put any published vehicles data from Ably into a dictionary
+- Subsequent messages for a vehicle overwrite its entry, updating its position
+- Updates will trigger React to rerender because our vehicle dictionary is in the state
 
-But why are the buses jumping rather than moving smoothly?
+Unfortunately the buses are jumping rather than moving smoothly. Animating the markers with react-map-gl turned out to be difficult for the following reasons:
 
-- Animating the markers was difficult
-    - Two reasons, loads and loads of markers
-    - The data didn't arrive in batches, it arrived in single bus events
-    - Because of that, animating could lock up other bus arrivals unless we batched ourselves
-    - A lot of code, for not much difference in UX because they don't move far quickly!
-    - Remove, removed complexity
+- There are many, many buses in the dataset
+- The data doesn't arrive in batches, it arrives in single bus events
+- Because of that, animating could lock up other bus arrivals unless we batched the animations.
+- This unfortunately required a lot of code, for not much difference in UX because they don't move far quickly!
 
-Let's add a sidebar
+The animations were removed to reduce complexity, but it would certainly be worth exploring this further in future, perhaps in a non-react version of the demo.
 
-- This is a list of bus items pouplated with the bus data. The items are linked to the buses on the map so that clicking on a bus will pan and zoom to that bus on the map.
+### Demo Sidebar with bus information
 
-##Sidebar and Bus interactions
+The sidebar is a list pouplated with the names of the buses which have been published on the CT Transit channel. The list items are linked to the bus markers on the map. Clicking on a bus name will pan and zoom to that bus on the map.
 
-- Click on bus in the sidebar will pan and zoom to correct bus on map
-- Clicking on a bus will zoom into that bus
+Sidebar and Bus interactions:
+
+- Clicking on bus name in the sidebar will pan and zoom to correct bus on the map
+- Clicking on a bus marker will zoom into that bus
 - The sidebar will only show buses which are within the bounds of the map
 - Hovering over a bus will highlight the bus name in the sidebar
 - Hovering over a bus will show a tooltip with that bus' address
 
-- Oh no! Animated panning to specific markers doesn't work!
+Another unfortunate discovery about the react-map-gl component is that animated panning to specific markers doesn't work as expected. This may be due to the fact that the React component does not mirror all of the functionality of MapboxGL JS.
 
-    - Really weird implementation of flyTo and setCenter - (renders a new layer on the map, which didn't move the markers correctly, nor was it possible to pan or zoom on)
-    - Luckily, we could just cause a pan/zoom by setting the viewport in the state, thus triggering the component to update
+The flyTo and setCenter methods seemed to render a new layer onto the map which then disappeared as soon as the user tried to zoom or move the map, creating a jarring UX. It also didn't take the markers into account when animating, so they appeared to be in the incorrect position while the animation took place.
+
+Luckily, we can cause a pan/zoom by setting the map viewport in the state, thus triggering the component to update.
+
+## Geocode.js Explained
+
+The data returned by the CT Transit channel does not include human readable addresses, which would likely be helpful to those looking up bus positions. In order to provide this data we will have to use a geolookup API to convert the provided LatLong values into an address. For this demo we use the Google Maps API.
+
+### Using the Google Maps API
+
+We use the [google-maps npm package](https://www.npmjs.com/package/google-maps). We pass it the LatLong and are returned an address. It is rate limited to 50,000 usages per hour which means that we can only really use it on interaction, or there are too many requests and subsequent requests get ignored. To get around this problem we only call the API on hover of a bus marker rather than getting the data for every single bus as their data arrives. Wrapping the google maps package in some promises so that we could use async/await makes it easier on the calling code, because we're not dealing with callbacks from the google sdk in our own code.
+
+### Adding tooltips
+
+In order to show the address of the buses on hover of the markers, the demo shows a 'tooltip', this is a div which displays just above the bus being interacted with. This came with its own difficulties too. The markers are absolutely positioned on the page by Mapbox. Which means that the tooltips cannot be placed inside the markers (which would be the simplest way to have them appear in the correct place on the page) as the z-index positioning of subesquent buses would place them on top of the tooltip, making it un-readable. Luckily, when mapbox creates markers it places them with css transforms, therefore, on hover of a marker we can:
+
+- Get the transform of the parent
+- Apply it to the tooltip
+- Show the tooltip
+
+Marker and Tooltip interactions: 
+
+- On mouse enter of a marker add 'hover' flag in state with bus details
+- Call Google Maps API with bus LatLong
+- Add returned address to Tooltip body
+- Set position of tooltip with position of marker
+- Display the tooltip
+- On mouse leave, remove 'hover' flag from state; hiding the tooltip
 
 
-# Adding tooltips
+## Conclusion
 
-- On click add flag in state
-- on mouse out, remove flag from state
-- Adding a tooltip to each marker won't work as the markers are aboslutely positioned (Child elements which are absolutely positioned will still sit underneath their parent's absolutely positioned siblings). Which means we need one absolutely positioned tooltip which is moved into the correct position.
-- Luckily, when mapbox creates markers it places them with css transforms
-
-- Therefore, on hover of a marker we can -
-    - Get the transform of the parent
-    - Apply it to the tooltip
-    - Show the tooltip
-
-
-## Geolookups!
-
-Adding actual street addresses to the buses (data not given by the CT Transit data stream) 
-- Geocode.js calls google maps api to turn lat long into an address
-- passes lat long, uses google-maps NPM package
-- Rate limited to 50,000 usages per hour
-- So we can only really use it on interaction, or there's too many requests
-- wrapped the google maps package in some promises so we could use async / await
-- easier on the calling code, because we're not dealing with callbacks from the google sdk in our own code
-
-
-- Conclusion
-
-- Ably realtime transport and mapping works really well
-- Really great consumer facing visualisation
-- While the example is CT Transit other transport data sources could integrate in similar ways, with a similar UX to this example
-- Or other data that's map-driven like logistics
-- We can mash up apis from different vendors to build compelling user experiences.
-
-## Other things we offer
-
-- https://www.ably.io/hub 
+The combination of the Ably Hub realtime transport data and intractive mapping works very well to create a clear and compelling demo. While the example uses CT Transit, other transport data sources could integrate in similar ways, with a similar UX to this example. Similar demos could also be used by logistics companies to create some really great consumer facing visualisations.
 
 --------------------------------------------------------
 
