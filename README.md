@@ -2,7 +2,7 @@
 
 ## A demo using Ably, Mapbox and data from CT Transit
 
-This demo covers how to visualise public transport on a map in realtime. It uses the [Ably Realtime Hub](https://www.ably.io/hub), which is a free collection of realtime data sources. For this demo we'll be using the [CT Transit GTFS realtime channel](https://www.ably.io/hub/products/174). This is a realtime data stream which has been injested and redistributed by the Ably Hub to make it easy to use and reliable.
+This demo covers how to visualise public transport on a map in realtime. It uses the [Ably Realtime Hub](https://www.ably.io/hub), which is a free collection of realtime data sources. For this demo we'll be using the [CT Transit GTFS realtime channel](https://www.ably.io/hub/products/174). This is a realtime data stream which has been ingested and redistributed by the Ably Hub to make it easy to use and reliable.
 
 This demo uses:
 
@@ -13,13 +13,13 @@ This demo uses:
 
 ## MapBox - A cross platform mapping tool
 
-Mapbox allows us to build a fully customisable, interactive map. Their APIs and SDKs are free and well maintained. 
+Mapbox allows us to build a fully customisable, interactive map. Their APIs and SDKs are free and well maintained.
 
 ### MapBox and React
 
-This demo uses the [react-map-gl](https://www.npmjs.com/package/react-map-gl) package (not to be confused with other similarly named packages that also wrap mapbox). This package provides react components for Mapbox to do half of our work for us. The demo was started with [Create React App](https://github.com/facebook/create-react-app) which allows us to get quickly set up with a mordern web app with no build configuration.
+This demo uses the [react-map-gl](https://www.npmjs.com/package/react-map-gl) package (not to be confused with other similarly named packages that also wrap Mapbox). This package provides react components for Mapbox to do half of our work for us. The demo was started with [Create React App](https://github.com/facebook/create-react-app) which allows us to get quickly set up with a modern web app with no build configuration.
 
-In order to use the react-map-gl package you will need an access token from Mapbox, which you can create with a [free Mapbox account](https://account.mapbox.com/auth/signup/). Set your new access token to the **REACT_APP_MAPBOX_ACCESS_TOKEN** environment variable in the `.env.local` file.
+In order to use the react-map-gl package you will need an access token from Mapbox, which you can create with a [free Mapbox account](https://account.Mapbox.com/auth/signup/). Set your new access token to the **REACT_APP_MAPBOX_ACCESS_TOKEN** environment variable in the `.env.local` file.
 
 ## Building a web app
 
@@ -49,11 +49,11 @@ src/App.js is our main react component and we will add Map.js and Geocode.js com
 
 ## Map.js explained
 
-This is the component which adds a map to the page and managed the placement of bus markers.
+This is the component which adds a map to the page and manages the placement of bus markers.
 
 In it we:
 
-- Create state on startup, with an empty dictionary of active buses
+- Create state on start-up, with an empty dictionary of active buses
 - Set up the map viewport
 - Draw a map with react-map-gl
 
@@ -75,7 +75,7 @@ The animations were removed to reduce complexity, but it would certainly be wort
 
 ### Demo Sidebar with bus information
 
-The sidebar is a list pouplated with the names of the buses which have been published on the CT Transit channel. The list items are linked to the bus markers on the map. Clicking on a bus name will pan and zoom to that bus on the map.
+The sidebar is a list populated with the names of the buses which have been published on the CT Transit channel. The list items are linked to the bus markers on the map. Clicking on a bus name will pan and zoom to that bus on the map.
 
 Sidebar and Bus interactions:
 
@@ -97,17 +97,17 @@ The data returned by the CT Transit channel does not include human readable addr
 
 ### Using the Google Maps API
 
-We use the [google-maps npm package](https://www.npmjs.com/package/google-maps). We pass it the LatLong and are returned an address. It is rate limited to 50,000 usages per hour which means that we can only really use it on interaction, or there are too many requests and subsequent requests get ignored. To get around this problem we only call the API on hover of a bus marker rather than getting the data for every single bus as their data arrives. Wrapping the google maps package in some promises so that we could use async/await makes it easier on the calling code, because we're not dealing with callbacks from the google sdk in our own code.
+We use the [google-maps npm package](https://www.npmjs.com/package/google-maps). We pass it the LatLong and are returned an address. It is rate limited to 50,000 usages per hour which means that we can only really use it on interaction, or there are too many requests and subsequent requests get ignored. To get around this problem we only call the API on hover of a bus marker rather than getting the data for every single bus as their data arrives. Wrapping the Google maps package in some promises so that we could use async/await makes it easier on the calling code, because we're not dealing with callbacks from the Google SDK in our own code.
 
 ### Adding tooltips
 
-In order to show the address of the buses on hover of the markers, the demo shows a 'tooltip', this is a div which displays just above the bus being interacted with. This came with its own difficulties too. The markers are absolutely positioned on the page by Mapbox. Which means that the tooltips cannot be placed inside the markers (which would be the simplest way to have them appear in the correct place on the page) as the z-index positioning of subesquent buses would place them on top of the tooltip, making it un-readable. Luckily, when mapbox creates markers it places them with css transforms, therefore, on hover of a marker we can:
+In order to show the address of the buses on hover of the markers, the demo shows a 'tooltip', this is a div which displays just above the bus being interacted with. This came with its own difficulties too. The markers are absolutely positioned on the page by Mapbox. Which means that the tooltips cannot be placed inside the markers (which would be the simplest way to have them appear in the correct place on the page) as the z-index positioning of subsequent buses would place them on top of the tooltip, making it unreadable. Luckily, when Mapbox creates markers it places them with CSS transforms, therefore, on hover of a marker we can:
 
 - Get the transform of the parent
 - Apply it to the tooltip
 - Show the tooltip
 
-Marker and Tooltip interactions: 
+Marker and Tooltip interactions:
 
 - On mouse enter of a marker add 'hover' flag in state with bus details
 - Call Google Maps API with bus LatLong
@@ -119,7 +119,7 @@ Marker and Tooltip interactions:
 
 ## Conclusion
 
-The combination of the Ably Hub realtime transport data and intractive mapping works very well to create a clear and compelling demo. While the example uses CT Transit, other transport data sources could integrate in similar ways, with a similar UX to this example. Similar demos could also be used by logistics companies to create some really great consumer facing visualisations.
+The combination of the Ably Hub realtime transport data and interactive mapping works very well to create a clear and compelling demo. While the example uses CT Transit, other transport data sources could integrate in similar ways, with a similar UX to this example. Similar demos could also be used by logistics companies to create some really great consumer facing visualisations.
 
 --------------------------------------------------------
 
