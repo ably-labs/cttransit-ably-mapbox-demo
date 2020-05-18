@@ -4,6 +4,7 @@ import Ably from "ably/promises";
 // import simulateAblyMessages from "./FakeAbly";
 import reverseGeocode from "./Geocode";
 
+// Set up a new instance of the Ably realtime library, replace the API key with your own in .env.local
 const client = new Ably.Realtime(process.env.REACT_APP_ABLY_API_KEY);
 
 export default class Map extends React.Component {
@@ -28,9 +29,13 @@ export default class Map extends React.Component {
     }
 
     componentDidMount() {
-        // simulateAblyMessages((data) => this.travelDataArrived(data));
+
+        // uncomment below to use fake data while testing to save message credits
+        // simulateAblyMessages((data) => this.travelDataArrived(data)); 
+
         this.map = this.mapRef.getMap();
 
+        // Subscribe to the CT Transit GTFSR channel and listen for messages that are sent
         const channel = client.channels.get('[product:cttransit/gtfsr]vehicle:all');
         channel.attach((err, r) => {
             channel.subscribe((message) => this.travelDataArrived(message));            
