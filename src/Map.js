@@ -38,16 +38,18 @@ export default class Map extends React.Component {
         // Subscribe to the CT Transit GTFSR channel and listen for messages that are sent
         const channel = client.channels.get('[product:cttransit/gtfsr]vehicle:all');
         channel.attach((err, r) => {
-            channel.subscribe((message) => this.travelDataArrived(message));            
+            channel.subscribe((message) => this.travelDataArrived(message));
         });
     }
 
     travelDataArrived(message) {
         const vehicleDictionary = this.state.vehicles;        
-        message.data.address = "";
+        for (let bus of message.data) {
+            bus.address = "";
+            vehicleDictionary[bus.id] = bus;
+        }
 
-        vehicleDictionary[message.data.id] = message.data;
-        this.setState({ vehicles: this.state.vehicles });
+        this.setState({ vehicles: vehicleDictionary });
     }
 
     getVisibleBuses() {
