@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This project is no longer being maintained as of March 2026.
+
 # Mapping Transport in Realtime
 
 ## A demo using Ably, Mapbox and data from CT Transit
